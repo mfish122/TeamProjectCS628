@@ -90,12 +90,19 @@ app.get('/recipes', async (req, res) => {
 });
 
 
+// Route to view a single recipe
 app.get('/recipes/:id', async (req, res) => {
     try {
         const recipe = await Recipe.findById(req.params.id);
         if (!recipe) {
             return res.status(404).send('<h1>Recipe not found</h1>');
         }
+        const commentsHTML = recipe.comments.map(comment => `
+            <div class="comment">
+                <p><strong>${comment.username}:</strong> ${comment.comment}</p>
+                <small>${new Date(comment.date).toLocaleString()}</small>
+            </div>
+        `).join('');
         const htmlContent = `
             <!DOCTYPE html>
             <html lang="en">
@@ -103,31 +110,23 @@ app.get('/recipes/:id', async (req, res) => {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>${recipe.title}</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        margin: 0;
-                        padding: 0;
-                        background-color: white;
-                    }
-                    .container {
-                        max-width: 800px;
-                        margin: 20px auto;
-                        padding: 10px;
-                        background: #fff;
-                        border-radius: 8px;
-                    }
-                </style>
             </head>
             <body>
                 ${getNavigation()}
-                <div class="container">
-                    <h1>${recipe.title}</h1>
-                    <h4>Ingredients:</h4>
-                    <ul>
-                        ${recipe.ingredients.map(ingredient => `<li>${ingredient}</li>`).join('')}
-                    </ul>
-                    <p><strong>Instructions:</strong> ${recipe.instructions}</p>
+                <h1>${recipe.title}</h1>
+                <h4>Ingredients:</h4>
+                <ul>
+                    ${recipe.ingredients.map(ingredient => `<li>${ingredient}</li>`).join('')}
+                </ul>
+                <p><strong>Instructions:</strong> ${recipe.instructions}</p>
+                <div>
+                    <h3>Comments</h3>
+                    ${commentsHTML || "<p>No comments yet. Be the first to comment!</p>"}
+                    <form action="/recipes/${recipe._id}/comment" method="POST">
+                        <input type="text" name="username" placeholder="Your Name" required />
+                        <textarea name="comment" placeholder="Write a comment..." required></textarea>
+                        <button type="submit">Post Comment</button>
+                    </form>
                 </div>
             </body>
             </html>
